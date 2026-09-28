@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dni do emerytury</title>
+  <meta name="description" content="Ile dni, dni roboczych i godzin zostało do emerytury. Dane zostają w Twojej przeglądarce.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="page-head">
+      <h1>Dni do emerytury</h1>
+      <button type="button" id="edit-btn" class="btn btn-ghost" hidden>Zmień dane</button>
+    </header>
+
+    <!-- Formularz konfiguracji -->
+    <section id="setup" class="card" hidden>
+      <h2>Twoje dane</h2>
+      <p class="muted">Dane zostają tylko w tej przeglądarce (localStorage). Nic nie jest wysyłane na serwer.</p>
+      <form id="config-form" novalidate>
+        <div class="grid-2">
+          <label class="field">
+            <span>Data urodzenia</span>
+            <input type="date" name="birthDate" required>
+          </label>
+          <label class="field">
+            <span>Data rozpoczęcia pracy</span>
+            <input type="date" name="workStartDate" required>
+          </label>
+        </div>
+        <fieldset class="field">
+          <legend>Płeć</legend>
+          <div class="segmented">
+            <label><input type="radio" name="gender" value="K"><span>Kobieta</span></label>
+            <label><input type="radio" name="gender" value="M" checked><span>Mężczyzna</span></label>
+          </div>
+        </fieldset>
+        <div class="grid-2">
+          <label class="field">
+            <span>Wiek emerytalny</span>
+            <input type="number" name="retirementAge" min="1" max="120" step="1" inputmode="numeric" required>
+            <small class="muted" id="age-hint"></small>
+          </label>
+          <label class="field">
+            <span>Godzin pracy dziennie</span>
+            <input type="number" name="hoursPerDay" min="0.5" max="24" step="0.5" inputmode="decimal" required>
+          </label>
+        </div>
+        <ul id="form-errors" class="errors" role="alert"></ul>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Zapisz i oblicz</button>
+          <button type="button" id="cancel-btn" class="btn btn-ghost" hidden>Anuluj</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Wyniki -->
+    <section id="results" hidden>
+      <div id="retired-banner" class="card banner" hidden>
+        <p class="hero-label">Gratulacje!</p>
+        <p class="banner-text">Jesteś już na emeryturze (od <span id="retired-date"></span>).</p>
+      </div>
+
+      <div id="countdown-block">
+        <div class="card hero">
+          <p class="hero-label">Do emerytury zostało</p>
+          <p class="hero-value"><span id="days-left"></span> <span id="days-left-unit" class="hero-unit"></span></p>
+          <p class="hero-sub"><span id="years-left"></span> · emerytura <strong id="retirement-date"></strong></p>
+          <p class="countdown" id="countdown" aria-live="off"></p>
+        </div>
+
+        <div class="tiles">
+          <div class="card tile">
+            <p class="tile-label">Dni robocze</p>
+            <p class="tile-value" id="working-days"></p>
+            <p class="tile-sub">bez weekendów i świąt</p>
+          </div>
+          <div class="card tile">
+            <p class="tile-label">Godziny robocze</p>
+            <p class="tile-value" id="working-hours"></p>
+            <p class="tile-sub" id="working-hours-sub"></p>
+          </div>
+          <div class="card tile">
+            <p class="tile-label">Godziny kalendarzowe</p>
+            <p class="tile-value" id="calendar-hours"></p>
+            <p class="tile-sub">do północy w dniu emerytury</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rings">
+        <figure class="card ring-card">
+          <figcaption>
+            <h2>Okres pracy</h2>
+            <p class="muted">Od rozpoczęcia pracy do emerytury</p>
+          </figcaption>
+          <div class="ring" id="ring-work"></div>
+          <dl class="ring-legend">
+            <div><dt><i class="swatch swatch-fill"></i>Przepracowane</dt><dd id="worked-days"></dd></div>
+            <div><dt><i class="swatch swatch-track"></i>Pozostało</dt><dd id="remaining-days"></dd></div>
+          </dl>
+        </figure>
+        <figure class="card ring-card">
+          <figcaption>
+            <h2>Praca a życie</h2>
+            <p class="muted">Jaką część dotychczasowego życia pracujesz</p>
+          </figcaption>
+          <div class="ring" id="ring-life"></div>
+          <dl class="ring-legend">
+            <div><dt><i class="swatch swatch-fill"></i>W pracy</dt><dd id="life-worked"></dd></div>
+            <div><dt><i class="swatch swatch-track"></i>Przed pracą</dt><dd id="life-before"></dd></div>
+          </dl>
+        </figure>
+      </div>
+
+      <p class="footnote muted">
+        Dni robocze liczone włącznie z dniem dzisiejszym i dniem emerytury, z pominięciem sobót, niedziel
+        i polskich świąt ustawowych. Wynik ma charakter orientacyjny.
+        <button type="button" id="clear-btn" class="link-btn">Usuń zapisane dane</button>
+      </p>
+    </section>
+
+    <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+  </main>
+
+  <script src="calc.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

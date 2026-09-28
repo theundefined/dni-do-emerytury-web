@@ -228,8 +228,8 @@
       $("years-left").textContent = formatYears(r.yearsLeft);
       $("retirement-date").textContent = formatDate(r.retirementDate);
       $("working-days").textContent = nf.format(r.workingDaysLeft);
-      $("working-hours-sub").textContent = nf.format(r.workingHoursLeft) + " h · pn–pt " +
-        E.formatTime(r.workDayStart) + "–" + E.formatTime(r.workDayEnd);
+      $("working-hours-sub").textContent = "pn–pt " +
+        E.formatTime(r.workDayStart) + "–" + E.formatTime(r.workDayEnd) + ", bez świąt";
     }
 
     var remaining = Math.max(0, r.totalWorkDays - r.daysWorked);

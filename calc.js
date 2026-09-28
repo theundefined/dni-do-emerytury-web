@@ -14,6 +14,8 @@
   var DEFAULT_RETIREMENT_AGE = { M: 65, K: 60 };
   var DEFAULT_WORK_START = "09:00";
   var DEFAULT_WORK_END = "17:00";
+  var DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5]; // 0 = niedziela … 6 = sobota
+  var DEFAULT_VACATION_DAYS = 26;
 
   function dayNumber(y, m, d) {
     return Math.floor(Date.UTC(y, m - 1, d) / MS_PER_DAY);
@@ -103,18 +105,44 @@
     return holidayCache[y][dn] === true;
   }
 
-  function isWorkingDay(dn) {
-    var weekday = new Date(dn * MS_PER_DAY).getUTCDay(); // 0 = niedziela
-    return weekday !== 0 && weekday !== 6 && !isHoliday(dn);
+  function weekdayOf(dn) {
+    return new Date(dn * MS_PER_DAY).getUTCDay(); // 0 = niedziela
   }
 
-  /** Dni robocze w przedziale [start, end] — oba końce włącznie, jak w CLI. */
-  function countWorkingDays(start, end) {
+  /** Dzień pracy: wybrany dzień tygodnia (domyślnie pn–pt), który nie jest świętem. */
+  function isWorkingDay(dn, workDays) {
+    return (workDays || DEFAULT_WORK_DAYS).indexOf(weekdayOf(dn)) !== -1 && !isHoliday(dn);
+  }
+
+  /** Dni robocze w przedziale [start, end] — oba końce włącznie. */
+  function countWorkingDays(start, end, workDays) {
     var count = 0;
     for (var dn = start; dn <= end; dn++) {
-      if (isWorkingDay(dn)) count++;
+      if (isWorkingDay(dn, workDays)) count++;
     }
     return count;
+  }
+
+  /**
+   * Średnia liczba dni roboczych w roku dla danych dni tygodnia — liczona
+   * na stałym 28-letnim cyklu kalendarza, żeby nie zmieniała się z dnia na dzień.
+   */
+  var avgCache = {};
+  function averageWorkingDaysPerYear(workDays) {
+    var key = workDays.join(",");
+    if (avgCache[key] === undefined) {
+      avgCache[key] = countWorkingDays(dayNumber(2000, 1, 1), dayNumber(2027, 12, 31), workDays) / 28;
+    }
+    return avgCache[key];
+  }
+
+  /**
+   * Jaka część dni roboczych jest faktycznie przepracowana po odjęciu urlopu
+   * (urlop rozłożony równomiernie, bo nie wiemy, kiedy zostanie wykorzystany).
+   */
+  function workFactor(workDays, vacationDays) {
+    var perYear = averageWorkingDaysPerYear(workDays);
+    return perYear > 0 ? Math.max(0, 1 - vacationDays / perYear) : 0;
   }
 
   /** "HH:MM" -> liczba sekund od północy albo null. "24:00" jest dozwolone. */
@@ -147,12 +175,15 @@
         : DEFAULT_WORK_END;
     }
     delete cfg.hoursPerDay;
+    if (cfg.workDays === undefined) cfg.workDays = DEFAULT_WORK_DAYS.slice();
+    if (cfg.vacationDays === undefined) cfg.vacationDays = DEFAULT_VACATION_DAYS;
     return cfg;
   }
 
   /**
    * Sprawdza konfigurację i zwraca listę błędów (pustą, gdy wszystko OK).
-   * config: { birthDate, workStartDate, gender, retirementAge, workStartTime, workEndTime }
+   * config: { birthDate, workStartDate, gender, retirementAge, workStartTime,
+   *           workEndTime, workDays, vacationDays }
    */
   function validateConfig(config) {
     var errors = [];
@@ -171,6 +202,17 @@
       errors.push("Podaj poprawne godziny pracy (GG:MM).");
     } else if (dayEnd <= dayStart) {
       errors.push("Koniec pracy musi być później niż jej początek.");
+    }
+    var days = config.workDays;
+    var daysOk = Array.isArray(days) && days.length > 0 && days.every(function (d, i) {
+      return Number.isInteger(d) && d >= 0 && d <= 6 && days.indexOf(d) === i;
+    });
+    if (!daysOk) errors.push("Wybierz co najmniej jeden dzień pracy w tygodniu.");
+    var vacation = Number(config.vacationDays);
+    if (!Number.isInteger(vacation) || vacation < 0) {
+      errors.push("Liczba dni urlopu musi być nieujemną liczbą całkowitą.");
+    } else if (daysOk && vacation >= averageWorkingDaysPerYear(days)) {
+      errors.push("Urlop nie może być dłuższy niż liczba dni pracy w roku.");
     }
     if (birth !== null && workStart !== null && workStart < birth) {
       errors.push("Data rozpoczęcia pracy nie może być wcześniejsza niż data urodzenia.");
@@ -191,6 +233,8 @@
     var dayEnd = parseTime(config.workEndTime);
     var hoursPerDay = (dayEnd - dayStart) / 3600;
     var retirement = addYears(birth, age);
+    var workDays = config.workDays || DEFAULT_WORK_DAYS;
+    var vacationDays = Number(config.vacationDays) || 0;
 
     var totalWorkDays = retirement - workStart;
     var daysWorked = Math.max(0, today - workStart);
@@ -200,6 +244,9 @@
       workDayStart: dayStart,
       workDayEnd: dayEnd,
       hoursPerDay: hoursPerDay,
+      workDays: workDays,
+      vacationDays: vacationDays,
+      workFactor: workFactor(workDays, vacationDays),
       retired: today >= retirement,
       totalWorkDays: totalWorkDays,
       daysWorked: Math.min(daysWorked, totalWorkDays),
@@ -210,13 +257,18 @@
         ? Math.min(100, (daysWorked / ageInDays) * 100) : 0,
       daysLeft: 0,
       yearsLeft: 0,
+      calendarWorkingDaysLeft: 0,
       workingDaysLeft: 0,
+      vacationDaysLeft: 0,
       workingHoursLeft: 0
     };
     if (!result.retired) {
       result.daysLeft = retirement - today;
       result.yearsLeft = result.daysLeft / 365.25;
-      result.workingDaysLeft = countWorkingDays(today, retirement);
+      // W dniu emerytury już się nie pracuje — liczymy do dnia poprzedniego.
+      result.calendarWorkingDaysLeft = countWorkingDays(today, retirement - 1, workDays);
+      result.workingDaysLeft = Math.round(result.calendarWorkingDaysLeft * result.workFactor);
+      result.vacationDaysLeft = result.calendarWorkingDaysLeft - result.workingDaysLeft;
       result.workingHoursLeft = result.workingDaysLeft * hoursPerDay;
     }
     return result;
@@ -224,22 +276,110 @@
 
   /**
    * Sekundy pracy pozostałe do emerytury w danej chwili: dzisiejsze godziny
-   * pracy liczą się tylko w części, która jeszcze nie minęła.
+   * pracy liczą się tylko w części, która jeszcze nie minęła. Całość jest
+   * pomniejszana o urlop (współczynnik workFactor), więc w godzinach pracy
+   * licznik spada nieco wolniej niż zegar, ale nigdy nie skacze.
    * nowSec — sekundy od północy (czas lokalny) w dniu `today`.
    */
   function workingSecondsLeft(result, today, nowSec) {
     if (result.retired) return 0;
     var perDay = result.workDayEnd - result.workDayStart;
-    var days = result.workingDaysLeft;
-    if (!isWorkingDay(today)) return days * perDay;
-    var todayLeft = Math.max(0, Math.min(perDay, result.workDayEnd - Math.max(nowSec, result.workDayStart)));
-    return (days - 1) * perDay + todayLeft;
+    var days = result.calendarWorkingDaysLeft;
+    var raw = days * perDay;
+    if (isWorkingDay(today, result.workDays)) {
+      var todayLeft = Math.max(0, Math.min(perDay, result.workDayEnd - Math.max(nowSec, result.workDayStart)));
+      raw = (days - 1) * perDay + todayLeft;
+    }
+    return Math.round(raw * result.workFactor);
+  }
+
+  /**
+   * Nadchodzące kamienie milowe (posortowane po dacie, łącznie z dzisiejszym):
+   * procent okresu pracy, okrągłe liczby dni do emerytury i dni roboczych.
+   * Zwraca [{ date, kind, value, label }].
+   */
+  var DAYS_LEFT_MARKS = [20000, 15000, 10000, 9000, 8000, 7000, 6000, 5000, 4000, 3000,
+    2500, 2000, 1500, 1000, 750, 500, 365, 300, 200, 100, 50, 30, 14, 7, 1];
+  var WORKING_DAYS_MARKS = [10000, 9000, 8000, 7000, 6000, 5000, 4000, 3000, 2500, 2000,
+    1500, 1000, 750, 500, 250, 100, 50, 20, 10, 5, 1];
+
+  function milestones(config, result, today) {
+    if (result.retired) return [];
+    var list = [];
+    var workStart = parseISODate(config.workStartDate);
+    var retirement = result.retirementDate;
+    var total = result.totalWorkDays;
+
+    for (var p = 10; p <= 90; p += 10) {
+      var date = workStart + Math.ceil((p / 100) * total);
+      if (date >= today) list.push({ date: date, kind: "percent", value: p });
+    }
+    [25, 75].forEach(function (p) {
+      var date = workStart + Math.ceil((p / 100) * total);
+      if (date >= today) list.push({ date: date, kind: "percent", value: p });
+    });
+    DAYS_LEFT_MARKS.forEach(function (n) {
+      var date = retirement - n;
+      if (date >= today) list.push({ date: date, kind: "daysLeft", value: n });
+    });
+
+    // Dni robocze (po odjęciu urlopu): pierwszy dzień, w którym zostaje ich ≤ N.
+    var targets = WORKING_DAYS_MARKS.filter(function (n) { return n < result.workingDaysLeft; });
+    var raw = result.calendarWorkingDaysLeft;
+    var ti = 0;
+    for (var dn = today; dn < retirement && ti < targets.length; dn++) {
+      var effective = Math.round(raw * result.workFactor);
+      while (ti < targets.length && effective <= targets[ti]) {
+        list.push({ date: dn, kind: "workingDays", value: targets[ti] });
+        ti++;
+      }
+      if (isWorkingDay(dn, result.workDays)) raw--;
+    }
+
+    list.forEach(function (m) {
+      if (m.kind === "percent") m.label = m.value + "% okresu pracy za Tobą";
+      else if (m.kind === "daysLeft") m.label = m.value === 1 ? "Ostatni dzień przed emeryturą" : m.value + " dni do emerytury";
+      else m.label = m.value === 1 ? "Ostatni dzień roboczy" : m.value + " dni roboczych do emerytury";
+    });
+    list.sort(function (a, b) { return a.date - b.date || b.value - a.value; });
+    return list;
+  }
+
+  /**
+   * „Ile jeszcze” w okresie [dziś, dzień przed emeryturą]: pracujące poniedziałki
+   * i piątki, weekendy, święta w dni pracy oraz długie weekendy (co najmniej
+   * 3 kolejne dni wolne, wśród których jest święto).
+   */
+  function remainingStats(result, today) {
+    var stats = { mondays: 0, fridays: 0, weekends: 0, holidays: 0, longWeekends: 0 };
+    if (result.retired) return stats;
+    var workDays = result.workDays;
+    var run = 0, runHasHoliday = false;
+    function closeRun() {
+      if (run >= 3 && runHasHoliday) stats.longWeekends++;
+      run = 0; runHasHoliday = false;
+    }
+    for (var dn = today; dn < result.retirementDate; dn++) {
+      var wd = weekdayOf(dn);
+      var working = isWorkingDay(dn, workDays);
+      if (working && wd === 1) stats.mondays++;
+      if (working && wd === 5) stats.fridays++;
+      if (wd === 6) stats.weekends++;
+      var holidayOnWorkday = workDays.indexOf(wd) !== -1 && isHoliday(dn);
+      if (holidayOnWorkday) stats.holidays++;
+      if (working) closeRun();
+      else { run++; if (holidayOnWorkday) runHasHoliday = true; }
+    }
+    closeRun();
+    return stats;
   }
 
   var api = {
     DEFAULT_RETIREMENT_AGE: DEFAULT_RETIREMENT_AGE,
     DEFAULT_WORK_START: DEFAULT_WORK_START,
     DEFAULT_WORK_END: DEFAULT_WORK_END,
+    DEFAULT_WORK_DAYS: DEFAULT_WORK_DAYS,
+    DEFAULT_VACATION_DAYS: DEFAULT_VACATION_DAYS,
     MS_PER_DAY: MS_PER_DAY,
     dayNumber: dayNumber,
     fromDayNumber: fromDayNumber,
@@ -251,12 +391,16 @@
     polishHolidays: polishHolidays,
     isWorkingDay: isWorkingDay,
     countWorkingDays: countWorkingDays,
+    averageWorkingDaysPerYear: averageWorkingDaysPerYear,
+    workFactor: workFactor,
     parseTime: parseTime,
     formatTime: formatTime,
     migrateConfig: migrateConfig,
     validateConfig: validateConfig,
     compute: compute,
-    workingSecondsLeft: workingSecondsLeft
+    workingSecondsLeft: workingSecondsLeft,
+    milestones: milestones,
+    remainingStats: remainingStats
   };
 
   if (typeof module === "object" && module.exports) {

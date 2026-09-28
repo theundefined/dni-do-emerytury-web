@@ -1,14 +1,15 @@
 # Dni do emerytury — wersja web
 
 Statyczna strona pokazująca, ile zostało do emerytury: dni kalendarzowych, dni i godzin
-roboczych (z pominięciem weekendów i polskich świąt ustawowych), a także jaki procent
-okresu pracy masz już za sobą. Odpowiednik narzędzia CLI
+roboczych (w wybrane dni tygodnia, z pominięciem polskich świąt ustawowych i urlopu),
+jaki procent okresu pracy masz już za sobą, najbliższe kamienie milowe oraz ile jeszcze
+zostało poniedziałków, piątków, weekendów, świąt i długich weekendów. Odpowiednik narzędzia CLI
 [dni-do-emerytury](https://github.com/theundefined/dni-do-emerytury).
 
 ## Przechowywanie danych
 
-Konfiguracja (data urodzenia, data rozpoczęcia pracy, płeć, wiek emerytalny, godziny pracy
-od–do, domyślnie pn–pt 9:00–17:00) jest zapisywana wyłącznie w `localStorage` przeglądarki pod kluczem
+Konfiguracja (data urodzenia, data rozpoczęcia pracy, płeć, wiek emerytalny, dni i godziny
+pracy — domyślnie pn–pt 9:00–17:00, dni urlopu w roku — domyślnie 26) jest zapisywana wyłącznie w `localStorage` przeglądarki pod kluczem
 `dni-do-emerytury:config`. Nic nie jest wysyłane na serwer, nie są używane ciasteczka.
 Dane można usunąć przyciskiem „Usuń zapisane dane” na dole strony.
 

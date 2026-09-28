@@ -109,6 +109,16 @@ input:focus-visible, .btn:focus-visible, .link-btn:focus-visible, .segmented inp
 .segmented label + label span { border-left: 1px solid var(--border); }
 .segmented input:checked + span { background: var(--accent); color: var(--accent-ink); }
 
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips label { position: relative; }
+.chips input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.chips span {
+  display: block; min-width: 46px; text-align: center; padding: 10px 8px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-2);
+}
+.chips input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chips input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .errors { color: var(--danger); margin: 0 0 12px; padding-left: 18px; font-size: 0.9rem; }
 .errors:empty { display: none; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -149,7 +159,6 @@ input:focus-visible, .btn:focus-visible, .link-btn:focus-visible, .segmented inp
 .tile-value { font-size: 1.7rem; font-weight: 700; margin: 6px 0 2px; }
 .tile-counter { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tile-counter small { font-size: 0.55em; font-weight: 600; color: var(--text-2); }
-.field-narrow { max-width: calc(50% - 8px); }
 .tile-sub { color: var(--text-3); font-size: 0.85rem; }
 
 .rings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -172,6 +181,24 @@ input:focus-visible, .btn:focus-visible, .link-btn:focus-visible, .segmented inp
 .swatch-track { background: var(--accent-track); }
 
 .footnote { font-size: 0.8rem; line-height: 1.5; }
+
+#milestones-card h2, #stats-card h2 { margin-bottom: 12px; }
+.milestones { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.milestones li {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 10px 0; border-top: 1px solid var(--border);
+}
+.milestones li:first-child { border-top: 0; padding-top: 0; }
+.milestones .ms-when { color: var(--text-2); font-size: 0.9rem; text-align: right; white-space: nowrap; }
+.milestones .ms-today { font-weight: 700; color: var(--text); }
+.milestones .ms-badge {
+  display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink); font-size: 0.75rem; font-weight: 700;
+}
+.stats { margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.stats div { display: flex; flex-direction: column-reverse; gap: 2px; }
+.stats dt { color: var(--text-2); font-size: 0.85rem; }
+.stats dd { margin: 0; font-size: 1.5rem; font-weight: 700; }
 .install-hint { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
 .install-hint .link-btn { align-self: flex-start; font-size: 0.85rem; }
 
@@ -192,7 +219,9 @@ input:focus-visible, .btn:focus-visible, .link-btn:focus-visible, .segmented inp
   .grid-2, .rings { grid-template-columns: 1fr; }
   .tiles { grid-template-columns: 1fr; }
   .grid-2 { gap: 0; }
-  .field-narrow { max-width: none; }
+  .milestones li { flex-direction: column; gap: 2px; }
+  .milestones .ms-when { text-align: left; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ring .fill { animation: none; }

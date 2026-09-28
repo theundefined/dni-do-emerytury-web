@@ -3,7 +3,7 @@
  * Strategia „najpierw sieć”: online zawsze dostajemy najnowszą wersję,
  * offline — ostatnią zapisaną w pamięci podręcznej.
  */
-var CACHE = "dni-do-emerytury-v1";
+var CACHE = "dni-do-emerytury-v2";
 var ASSETS = [
   "./",
   "index.html",

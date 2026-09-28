@@ -45,6 +45,29 @@
   function formatYears(y) { return "≈ " + nf2.format(y) + " roku"; }
   function pad(n) { return String(n).padStart(2, "0"); }
 
+  var DAY_NAMES = ["nd", "pn", "wt", "śr", "cz", "pt", "sb"];
+  /** [1,2,3,4,5] -> "pn–pt", [1,3,5] -> "pn, śr, pt" (tydzień od poniedziałku). */
+  function formatWorkDays(days) {
+    if (days.length === 7) return "codziennie";
+    var order = [1, 2, 3, 4, 5, 6, 0].filter(function (d) { return days.indexOf(d) !== -1; });
+    var idx = function (d) { return (d + 6) % 7; };
+    var parts = [], i = 0;
+    while (i < order.length) {
+      var j = i;
+      while (j + 1 < order.length && idx(order[j + 1]) === idx(order[j]) + 1) j++;
+      if (j - i >= 2) parts.push(DAY_NAMES[order[i]] + "–" + DAY_NAMES[order[j]]);
+      else for (var k = i; k <= j; k++) parts.push(DAY_NAMES[order[k]]);
+      i = j + 1;
+    }
+    return parts.join(", ");
+  }
+
+  function daysUntil(n) {
+    if (n === 0) return "dziś";
+    if (n === 1) return "jutro";
+    return "za " + nf.format(n) + " dni";
+  }
+
   /* ---------- formularz ---------- */
 
   var ageTouched = false;
@@ -69,6 +92,11 @@
     form.retirementAge.value = cfg.retirementAge || E.DEFAULT_RETIREMENT_AGE[gender];
     form.workStartTime.value = cfg.workStartTime || E.DEFAULT_WORK_START;
     form.workEndTime.value = cfg.workEndTime || E.DEFAULT_WORK_END;
+    form.vacationDays.value = cfg.vacationDays !== undefined ? cfg.vacationDays : E.DEFAULT_VACATION_DAYS;
+    var workDays = cfg.workDays || E.DEFAULT_WORK_DAYS;
+    form.querySelectorAll('input[name="workDay"]').forEach(function (el) {
+      el.checked = workDays.indexOf(Number(el.value)) !== -1;
+    });
     ageTouched = !!cfg.retirementAge && Number(cfg.retirementAge) !== E.DEFAULT_RETIREMENT_AGE[gender];
     $("form-errors").innerHTML = "";
     updateAgeHint();
@@ -81,7 +109,12 @@
       gender: selectedGender(),
       retirementAge: form.retirementAge.value === "" ? NaN : Number(form.retirementAge.value),
       workStartTime: form.workStartTime.value,
-      workEndTime: form.workEndTime.value
+      workEndTime: form.workEndTime.value,
+      workDays: Array.prototype.map.call(
+        form.querySelectorAll('input[name="workDay"]:checked'),
+        function (el) { return Number(el.value); }
+      ).sort(),
+      vacationDays: form.vacationDays.value === "" ? NaN : Number(form.vacationDays.value)
     };
   }
 
@@ -219,6 +252,8 @@
     state.result = r;
 
     $("retired-banner").hidden = !r.retired;
+    $("milestones-card").hidden = r.retired;
+    $("stats-card").hidden = r.retired;
     $("countdown-block").hidden = r.retired;
     $("retired-date").textContent = formatDate(r.retirementDate);
 
@@ -228,8 +263,14 @@
       $("years-left").textContent = formatYears(r.yearsLeft);
       $("retirement-date").textContent = formatDate(r.retirementDate);
       $("working-days").textContent = nf.format(r.workingDaysLeft);
-      $("working-hours-sub").textContent = "pn–pt " +
-        E.formatTime(r.workDayStart) + "–" + E.formatTime(r.workDayEnd) + ", bez świąt";
+      $("working-days-sub").textContent = r.vacationDays > 0
+        ? "po odjęciu ≈ " + nf.format(r.vacationDaysLeft) + " dni urlopu"
+        : "bez dni wolnych i świąt";
+      $("working-hours-sub").textContent = formatWorkDays(r.workDays) + " " +
+        E.formatTime(r.workDayStart) + "–" + E.formatTime(r.workDayEnd) +
+        (r.vacationDays > 0 ? ", bez świąt i urlopu" : ", bez świąt");
+      renderMilestones(cfg, r);
+      renderStats(r);
     }
 
     var remaining = Math.max(0, r.totalWorkDays - r.daysWorked);
@@ -248,6 +289,56 @@
       "Praca to " + nf2.format(r.lifeWorkPercent) + "% Twojego dotychczasowego życia"));
 
     tick();
+  }
+
+  function renderMilestones(cfg, r) {
+    var list = E.milestones(cfg, r, state.today).slice(0, 5);
+    var ol = $("milestones");
+    ol.replaceChildren();
+    if (!list.length) {
+      $("milestones-card").hidden = true;
+      return;
+    }
+    list.forEach(function (m) {
+      var li = document.createElement("li");
+      var what = document.createElement("span");
+      var when = document.createElement("span");
+      when.className = "ms-when";
+      var inDays = m.date - state.today;
+      if (inDays === 0) {
+        li.className = "ms-today";
+        var badge = document.createElement("span");
+        badge.className = "ms-badge";
+        badge.textContent = "Dziś!";
+        what.appendChild(badge);
+      }
+      what.appendChild(document.createTextNode(m.label));
+      when.textContent = formatDate(m.date) + " · " + daysUntil(inDays);
+      li.append(what, when);
+      ol.appendChild(li);
+    });
+  }
+
+  function renderStats(r) {
+    var s = E.remainingStats(r, state.today);
+    var items = [];
+    if (r.workDays.indexOf(1) !== -1) items.push([s.mondays, "poniedziałków w pracy"]);
+    if (r.workDays.indexOf(5) !== -1) items.push([s.fridays, "piątków w pracy"]);
+    if (r.workDays.indexOf(6) === -1 && r.workDays.indexOf(0) === -1) items.push([s.weekends, "weekendów"]);
+    items.push([s.holidays, "świąt w dni pracy"]);
+    items.push([s.longWeekends, "długich weekendów"]);
+    if (r.vacationDays > 0) items.push(["≈ " + nf.format(r.vacationDaysLeft), "dni urlopu"]);
+    var dl = $("stats");
+    dl.replaceChildren();
+    items.forEach(function (it) {
+      var div = document.createElement("div");
+      var dt = document.createElement("dt");
+      var dd = document.createElement("dd");
+      dt.textContent = it[1];
+      dd.textContent = typeof it[0] === "number" ? nf.format(it[0]) : it[0];
+      div.append(dt, dd);
+      dl.appendChild(div);
+    });
   }
 
   /* Odliczanie na żywo do północy (czasu lokalnego) w dniu emerytury. */

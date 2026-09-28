@@ -47,14 +47,33 @@
             <label><input type="radio" name="gender" value="M" checked><span>Mężczyzna</span></label>
           </div>
         </fieldset>
-        <label class="field field-narrow">
-          <span>Wiek emerytalny</span>
-          <input type="number" name="retirementAge" min="1" max="120" step="1" inputmode="numeric" required>
-          <small class="muted" id="age-hint"></small>
-        </label>
         <div class="grid-2">
           <label class="field">
-            <span>Praca od (pn–pt)</span>
+            <span>Wiek emerytalny</span>
+            <input type="number" name="retirementAge" min="1" max="120" step="1" inputmode="numeric" required>
+            <small class="muted" id="age-hint"></small>
+          </label>
+          <label class="field">
+            <span>Dni urlopu w roku</span>
+            <input type="number" name="vacationDays" min="0" max="200" step="1" inputmode="numeric" required>
+            <small class="muted">20 lub 26 dni wg Kodeksu pracy; 0 — bez urlopu</small>
+          </label>
+        </div>
+        <fieldset class="field">
+          <legend>Dni pracy</legend>
+          <div class="chips" id="work-days">
+            <label><input type="checkbox" name="workDay" value="1"><span>Pn</span></label>
+            <label><input type="checkbox" name="workDay" value="2"><span>Wt</span></label>
+            <label><input type="checkbox" name="workDay" value="3"><span>Śr</span></label>
+            <label><input type="checkbox" name="workDay" value="4"><span>Cz</span></label>
+            <label><input type="checkbox" name="workDay" value="5"><span>Pt</span></label>
+            <label><input type="checkbox" name="workDay" value="6"><span>Sb</span></label>
+            <label><input type="checkbox" name="workDay" value="0"><span>Nd</span></label>
+          </div>
+        </fieldset>
+        <div class="grid-2">
+          <label class="field">
+            <span>Praca od</span>
             <input type="time" name="workStartTime" step="60" required>
           </label>
           <label class="field">
@@ -89,7 +108,7 @@
           <div class="card tile">
             <p class="tile-label">Dni robocze</p>
             <p class="tile-value" id="working-days"></p>
-            <p class="tile-sub">bez weekendów i świąt</p>
+            <p class="tile-sub" id="working-days-sub"></p>
           </div>
           <div class="card tile">
             <p class="tile-label">Czas pracy</p>
@@ -129,9 +148,20 @@
         </figure>
       </div>
 
+      <section class="card" id="milestones-card">
+        <h2>Kamienie milowe</h2>
+        <ol class="milestones" id="milestones"></ol>
+      </section>
+
+      <section class="card" id="stats-card">
+        <h2>Do emerytury jeszcze</h2>
+        <dl class="stats" id="stats"></dl>
+      </section>
+
       <p class="footnote muted">
-        Dni robocze liczone włącznie z dniem dzisiejszym i dniem emerytury, z pominięciem sobót, niedziel
-        i polskich świąt ustawowych. Licznik czasu pracy zmniejsza się tylko w godzinach pracy. Wynik ma charakter orientacyjny.
+        Dni robocze liczone od dziś do dnia przed emeryturą, tylko w wybrane dni tygodnia i z pominięciem
+        polskich świąt ustawowych. Urlop jest rozłożony równomiernie (nie wiadomo, kiedy go weźmiesz),
+        dlatego w godzinach pracy licznik czasu pracy spada nieco wolniej niż zegar. Wynik ma charakter orientacyjny.
         <button type="button" id="clear-btn" class="link-btn">Usuń zapisane dane</button>
       </p>
     </section>

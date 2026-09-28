@@ -67,6 +67,7 @@ body {
   gap: 12px;
   margin-bottom: 20px;
 }
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
 h2 { font-size: 1rem; margin: 0; }
 p { margin: 0; }
@@ -171,6 +172,8 @@ input:focus-visible, .btn:focus-visible, .link-btn:focus-visible, .segmented inp
 .swatch-track { background: var(--accent-track); }
 
 .footnote { font-size: 0.8rem; line-height: 1.5; }
+.install-hint { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.install-hint .link-btn { align-self: flex-start; font-size: 0.85rem; }
 
 .tooltip {
   position: fixed;

@@ -282,6 +282,56 @@
     state.timer = null;
   }
 
+  /* ---------- instalacja jako aplikacja (PWA) ---------- */
+
+  var HINT_KEY = "dni-do-emerytury:install-hint-dismissed";
+  var installPrompt = null;
+
+  function isStandalone() {
+    return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  }
+
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(function () { /* offline niedostępny */ });
+  }
+
+  // Chrome/Edge/Samsung Internet: własny przycisk „Zainstaluj”.
+  window.addEventListener("beforeinstallprompt", function (ev) {
+    ev.preventDefault();
+    installPrompt = ev;
+    $("install-btn").hidden = false;
+    $("install-hint").hidden = true;
+  });
+  $("install-btn").addEventListener("click", function () {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.finally(function () {
+      installPrompt = null;
+      $("install-btn").hidden = true;
+    });
+  });
+  window.addEventListener("appinstalled", function () {
+    $("install-btn").hidden = true;
+    $("install-hint").hidden = true;
+  });
+
+  // iPhone/iPad (Safari nie ma przycisku instalacji) — pokaż instrukcję.
+  function showInstallHint() {
+    var dismissed = false;
+    try { dismissed = localStorage.getItem(HINT_KEY) === "1"; } catch (e) { /* brak dostępu */ }
+    var ua = navigator.userAgent;
+    var isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    if (dismissed || isStandalone() || !isIOS) return;
+    $("install-hint-text").textContent =
+      "W Safari stuknij „Udostępnij” (kwadrat ze strzałką), a potem „Do ekranu początkowego”.";
+    $("install-hint").hidden = false;
+  }
+  $("install-hint-close").addEventListener("click", function () {
+    try { localStorage.setItem(HINT_KEY, "1"); } catch (e) { /* brak dostępu */ }
+    $("install-hint").hidden = true;
+  });
+  showInstallHint();
+
   /* ---------- start ---------- */
 
   state.config = loadConfig();

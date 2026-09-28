@@ -5,14 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dni do emerytury</title>
   <meta name="description" content="Ile dni, dni roboczych i godzin zostało do emerytury. Dane zostają w Twojej przeglądarce.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#f4f3ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-title" content="Emerytura">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="page">
     <header class="page-head">
       <h1>Dni do emerytury</h1>
-      <button type="button" id="edit-btn" class="btn btn-ghost" hidden>Zmień dane</button>
+      <div class="head-actions">
+        <button type="button" id="install-btn" class="btn btn-ghost" hidden>Zainstaluj</button>
+        <button type="button" id="edit-btn" class="btn btn-ghost" hidden>Zmień dane</button>
+      </div>
     </header>
 
     <!-- Formularz konfiguracji -->
@@ -125,6 +135,12 @@
         <button type="button" id="clear-btn" class="link-btn">Usuń zapisane dane</button>
       </p>
     </section>
+
+    <div id="install-hint" class="card install-hint" hidden>
+      <p><strong>Dodaj do ekranu głównego</strong></p>
+      <p class="muted" id="install-hint-text"></p>
+      <button type="button" id="install-hint-close" class="link-btn">Nie pokazuj więcej</button>
+    </div>
 
     <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
   </main>

@@ -12,6 +12,14 @@ od–do, domyślnie pn–pt 9:00–17:00) jest zapisywana wyłącznie w `localSt
 `dni-do-emerytury:config`. Nic nie jest wysyłane na serwer, nie są używane ciasteczka.
 Dane można usunąć przyciskiem „Usuń zapisane dane” na dole strony.
 
+## Instalacja na telefonie
+
+Strona jest aplikacją PWA — można ją dodać do ekranu głównego i używać offline:
+
+- **Android (Chrome, Edge, Samsung Internet):** przycisk „Zainstaluj” w nagłówku strony
+  albo menu przeglądarki → „Zainstaluj aplikację” / „Dodaj do ekranu głównego”.
+- **iPhone / iPad (Safari):** „Udostępnij” → „Do ekranu początkowego”.
+
 ## Uruchomienie lokalne
 
 Wystarczy otworzyć `index.html` w przeglądarce albo uruchomić prosty serwer:

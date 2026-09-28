@@ -18,7 +18,7 @@
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
-      var cfg = JSON.parse(raw);
+      var cfg = E.migrateConfig(JSON.parse(raw));
       return E.validateConfig(cfg).length === 0 ? cfg : null;
     } catch (e) {
       return null;
@@ -67,7 +67,8 @@
     form.workStartDate.value = cfg.workStartDate || "";
     form.querySelector('input[name="gender"][value="' + gender + '"]').checked = true;
     form.retirementAge.value = cfg.retirementAge || E.DEFAULT_RETIREMENT_AGE[gender];
-    form.hoursPerDay.value = cfg.hoursPerDay || E.DEFAULT_HOURS_PER_DAY;
+    form.workStartTime.value = cfg.workStartTime || E.DEFAULT_WORK_START;
+    form.workEndTime.value = cfg.workEndTime || E.DEFAULT_WORK_END;
     ageTouched = !!cfg.retirementAge && Number(cfg.retirementAge) !== E.DEFAULT_RETIREMENT_AGE[gender];
     $("form-errors").innerHTML = "";
     updateAgeHint();
@@ -79,7 +80,8 @@
       workStartDate: form.workStartDate.value,
       gender: selectedGender(),
       retirementAge: form.retirementAge.value === "" ? NaN : Number(form.retirementAge.value),
-      hoursPerDay: form.hoursPerDay.value === "" ? NaN : Number(form.hoursPerDay.value)
+      workStartTime: form.workStartTime.value,
+      workEndTime: form.workEndTime.value
     };
   }
 
@@ -226,8 +228,8 @@
       $("years-left").textContent = formatYears(r.yearsLeft);
       $("retirement-date").textContent = formatDate(r.retirementDate);
       $("working-days").textContent = nf.format(r.workingDaysLeft);
-      $("working-hours").textContent = nf.format(r.workingHoursLeft);
-      $("working-hours-sub").textContent = "po " + nf.format(Number(cfg.hoursPerDay)) + " h dziennie";
+      $("working-hours-sub").textContent = nf.format(r.workingHoursLeft) + " h · pn–pt " +
+        E.formatTime(r.workDayStart) + "–" + E.formatTime(r.workDayEnd);
     }
 
     var remaining = Math.max(0, r.totalWorkDays - r.daysWorked);
@@ -263,6 +265,12 @@
     $("calendar-hours").textContent = nf.format(hours);
     $("countdown").innerHTML = "<b>" + nf.format(hours) + "</b> godz. <b>" + pad(min) +
       "</b> min <b>" + pad(sec) + "</b> s";
+
+    var now = new Date();
+    var nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    var work = E.workingSecondsLeft(r, state.today, nowSec);
+    $("working-hours").innerHTML = nf.format(Math.floor(work / 3600)) + "<small> h </small>" +
+      pad(Math.floor((work % 3600) / 60)) + "<small> min </small>" + pad(work % 60) + "<small> s</small>";
   }
 
   function startTimer() {

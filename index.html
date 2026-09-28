@@ -37,15 +37,19 @@
             <label><input type="radio" name="gender" value="M" checked><span>Mężczyzna</span></label>
           </div>
         </fieldset>
+        <label class="field field-narrow">
+          <span>Wiek emerytalny</span>
+          <input type="number" name="retirementAge" min="1" max="120" step="1" inputmode="numeric" required>
+          <small class="muted" id="age-hint"></small>
+        </label>
         <div class="grid-2">
           <label class="field">
-            <span>Wiek emerytalny</span>
-            <input type="number" name="retirementAge" min="1" max="120" step="1" inputmode="numeric" required>
-            <small class="muted" id="age-hint"></small>
+            <span>Praca od (pn–pt)</span>
+            <input type="time" name="workStartTime" step="60" required>
           </label>
           <label class="field">
-            <span>Godzin pracy dziennie</span>
-            <input type="number" name="hoursPerDay" min="0.5" max="24" step="0.5" inputmode="decimal" required>
+            <span>Praca do</span>
+            <input type="time" name="workEndTime" step="60" required>
           </label>
         </div>
         <ul id="form-errors" class="errors" role="alert"></ul>
@@ -78,8 +82,8 @@
             <p class="tile-sub">bez weekendów i świąt</p>
           </div>
           <div class="card tile">
-            <p class="tile-label">Godziny robocze</p>
-            <p class="tile-value" id="working-hours"></p>
+            <p class="tile-label">Czas pracy</p>
+            <p class="tile-value tile-counter" id="working-hours"></p>
             <p class="tile-sub" id="working-hours-sub"></p>
           </div>
           <div class="card tile">
@@ -117,7 +121,7 @@
 
       <p class="footnote muted">
         Dni robocze liczone włącznie z dniem dzisiejszym i dniem emerytury, z pominięciem sobót, niedziel
-        i polskich świąt ustawowych. Wynik ma charakter orientacyjny.
+        i polskich świąt ustawowych. Licznik czasu pracy zmniejsza się tylko w godzinach pracy. Wynik ma charakter orientacyjny.
         <button type="button" id="clear-btn" class="link-btn">Usuń zapisane dane</button>
       </p>
     </section>

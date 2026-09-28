@@ -12,7 +12,8 @@
 
   var MS_PER_DAY = 86400000;
   var DEFAULT_RETIREMENT_AGE = { M: 65, K: 60 };
-  var DEFAULT_HOURS_PER_DAY = 8;
+  var DEFAULT_WORK_START = "09:00";
+  var DEFAULT_WORK_END = "17:00";
 
   function dayNumber(y, m, d) {
     return Math.floor(Date.UTC(y, m - 1, d) / MS_PER_DAY);
@@ -116,9 +117,42 @@
     return count;
   }
 
+  /** "HH:MM" -> liczba sekund od północy albo null. "24:00" jest dozwolone. */
+  function parseTime(str) {
+    var match = /^(\d{2}):(\d{2})$/.exec(String(str || "").trim());
+    if (!match) return null;
+    var h = +match[1], m = +match[2];
+    if (m > 59 || h > 24 || (h === 24 && m !== 0)) return null;
+    return h * 3600 + m * 60;
+  }
+
+  function formatTime(sec) {
+    return String(Math.floor(sec / 3600)).padStart(2, "0") + ":" +
+      String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+  }
+
+  /**
+   * Uzupełnia konfigurację zapisaną przez starszą wersję strony, która
+   * zamiast godzin pracy od–do trzymała tylko liczbę godzin dziennie.
+   */
+  function migrateConfig(config) {
+    var cfg = {};
+    Object.keys(config || {}).forEach(function (k) { cfg[k] = config[k]; });
+    if (cfg.workStartTime === undefined && cfg.workEndTime === undefined) {
+      var start = parseTime(DEFAULT_WORK_START);
+      var hours = Number(cfg.hoursPerDay);
+      cfg.workStartTime = DEFAULT_WORK_START;
+      cfg.workEndTime = hours > 0
+        ? formatTime(Math.min(24 * 3600, start + Math.round(hours * 3600 / 60) * 60))
+        : DEFAULT_WORK_END;
+    }
+    delete cfg.hoursPerDay;
+    return cfg;
+  }
+
   /**
    * Sprawdza konfigurację i zwraca listę błędów (pustą, gdy wszystko OK).
-   * config: { birthDate, workStartDate, gender, retirementAge, hoursPerDay }
+   * config: { birthDate, workStartDate, gender, retirementAge, workStartTime, workEndTime }
    */
   function validateConfig(config) {
     var errors = [];
@@ -131,9 +165,12 @@
     if (!Number.isInteger(age) || age < 1 || age > 120) {
       errors.push("Wiek emerytalny musi być liczbą całkowitą z zakresu 1–120.");
     }
-    var hours = Number(config.hoursPerDay);
-    if (!(hours > 0 && hours <= 24)) {
-      errors.push("Liczba godzin pracy dziennie musi być z zakresu 0–24.");
+    var dayStart = parseTime(config.workStartTime);
+    var dayEnd = parseTime(config.workEndTime);
+    if (dayStart === null || dayEnd === null) {
+      errors.push("Podaj poprawne godziny pracy (GG:MM).");
+    } else if (dayEnd <= dayStart) {
+      errors.push("Koniec pracy musi być później niż jej początek.");
     }
     if (birth !== null && workStart !== null && workStart < birth) {
       errors.push("Data rozpoczęcia pracy nie może być wcześniejsza niż data urodzenia.");
@@ -150,7 +187,9 @@
     var birth = parseISODate(config.birthDate);
     var workStart = parseISODate(config.workStartDate);
     var age = Number(config.retirementAge);
-    var hoursPerDay = Number(config.hoursPerDay) || DEFAULT_HOURS_PER_DAY;
+    var dayStart = parseTime(config.workStartTime);
+    var dayEnd = parseTime(config.workEndTime);
+    var hoursPerDay = (dayEnd - dayStart) / 3600;
     var retirement = addYears(birth, age);
 
     var totalWorkDays = retirement - workStart;
@@ -158,6 +197,9 @@
     var ageInDays = today - birth;
     var result = {
       retirementDate: retirement,
+      workDayStart: dayStart,
+      workDayEnd: dayEnd,
+      hoursPerDay: hoursPerDay,
       retired: today >= retirement,
       totalWorkDays: totalWorkDays,
       daysWorked: Math.min(daysWorked, totalWorkDays),
@@ -180,9 +222,24 @@
     return result;
   }
 
+  /**
+   * Sekundy pracy pozostałe do emerytury w danej chwili: dzisiejsze godziny
+   * pracy liczą się tylko w części, która jeszcze nie minęła.
+   * nowSec — sekundy od północy (czas lokalny) w dniu `today`.
+   */
+  function workingSecondsLeft(result, today, nowSec) {
+    if (result.retired) return 0;
+    var perDay = result.workDayEnd - result.workDayStart;
+    var days = result.workingDaysLeft;
+    if (!isWorkingDay(today)) return days * perDay;
+    var todayLeft = Math.max(0, Math.min(perDay, result.workDayEnd - Math.max(nowSec, result.workDayStart)));
+    return (days - 1) * perDay + todayLeft;
+  }
+
   var api = {
     DEFAULT_RETIREMENT_AGE: DEFAULT_RETIREMENT_AGE,
-    DEFAULT_HOURS_PER_DAY: DEFAULT_HOURS_PER_DAY,
+    DEFAULT_WORK_START: DEFAULT_WORK_START,
+    DEFAULT_WORK_END: DEFAULT_WORK_END,
     MS_PER_DAY: MS_PER_DAY,
     dayNumber: dayNumber,
     fromDayNumber: fromDayNumber,
@@ -194,8 +251,12 @@
     polishHolidays: polishHolidays,
     isWorkingDay: isWorkingDay,
     countWorkingDays: countWorkingDays,
+    parseTime: parseTime,
+    formatTime: formatTime,
+    migrateConfig: migrateConfig,
     validateConfig: validateConfig,
-    compute: compute
+    compute: compute,
+    workingSecondsLeft: workingSecondsLeft
   };
 
   if (typeof module === "object" && module.exports) {

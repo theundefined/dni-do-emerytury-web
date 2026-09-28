@@ -8,7 +8,7 @@ okresu pracy masz już za sobą. Odpowiednik narzędzia CLI
 ## Przechowywanie danych
 
 Konfiguracja (data urodzenia, data rozpoczęcia pracy, płeć, wiek emerytalny, godziny pracy
-dziennie) jest zapisywana wyłącznie w `localStorage` przeglądarki pod kluczem
+od–do, domyślnie pn–pt 9:00–17:00) jest zapisywana wyłącznie w `localStorage` przeglądarki pod kluczem
 `dni-do-emerytury:config`. Nic nie jest wysyłane na serwer, nie są używane ciasteczka.
 Dane można usunąć przyciskiem „Usuń zapisane dane” na dole strony.
 

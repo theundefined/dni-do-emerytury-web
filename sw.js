@@ -2,8 +2,12 @@
  * Service worker: pozwala zainstalować stronę jako aplikację i używać jej offline.
  * Strategia „najpierw sieć”: online zawsze dostajemy najnowszą wersję,
  * offline — ostatnią zapisaną w pamięci podręcznej.
+ *
+ * Na GitHub Pages kilka projektów może dzielić ten sam origin (a więc i Cache
+ * API), dlatego usuwamy wyłącznie własne, nieaktualne cache z prefiksem.
  */
-var CACHE = "dni-do-emerytury-v2";
+var PREFIX = "dni-do-emerytury-";
+var CACHE = PREFIX + "v2";
 var ASSETS = [
   "./",
   "index.html",
@@ -27,7 +31,7 @@ self.addEventListener("install", function (event) {
 self.addEventListener("activate", function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE; })
+      return Promise.all(keys.filter(function (k) { return k.indexOf(PREFIX) === 0 && k !== CACHE; })
         .map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );

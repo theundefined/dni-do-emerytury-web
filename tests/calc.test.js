@@ -161,6 +161,17 @@ test("kamienie milowe", () => {
   assert.equal(days1000.date, r.retirementDate - 1000);
   const p90 = ms.find((m) => m.kind === "percent" && m.value === 90);
   assert.equal(p90.date, d("2000-01-01") + Math.ceil(0.9 * r.totalWorkDays));
+  // % życia w pracy: dokładnie jeden, najbliższy pełny 5%, osiągnięty w tym dniu, a nie dzień wcześniej
+  const life = ms.filter((m) => m.kind === "lifePercent");
+  assert.equal(life.length, 1);
+  assert.equal(life[0].value % 5, 0);
+  assert.ok(life[0].value > r.lifeWorkPercent);
+  assert.ok(life[0].value - r.lifeWorkPercent <= 5);
+  assert.ok(E.compute(base, life[0].date).lifeWorkPercent >= life[0].value);
+  assert.ok(E.compute(base, life[0].date - 1).lifeWorkPercent < life[0].value);
+  // okrągłe lata stażu: rocznice rozpoczęcia pracy co 5 lat
+  const y30 = ms.find((m) => m.kind === "yearsWorked" && m.value === 30);
+  assert.equal(y30.date, d("2030-01-01"));
   // w dniu kamienia „N dni roboczych” licznik pokazuje ≤ N, dzień wcześniej > N
   const wd = ms.find((m) => m.kind === "workingDays" && m.value === 1000);
   assert.ok(E.compute(base, wd.date).workingDaysLeft <= 1000);

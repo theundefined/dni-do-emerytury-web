@@ -295,7 +295,8 @@
 
   /**
    * Nadchodzące kamienie milowe (posortowane po dacie, łącznie z dzisiejszym):
-   * procent okresu pracy, okrągłe liczby dni do emerytury i dni roboczych.
+   * procent okresu pracy, najbliższy pełny 5% życia spędzonego w pracy, okrągłe
+   * lata stażu oraz okrągłe liczby dni do emerytury i dni roboczych.
    * Zwraca [{ date, kind, value, label }].
    */
   var DAYS_LEFT_MARKS = [20000, 15000, 10000, 9000, 8000, 7000, 6000, 5000, 4000, 3000,
@@ -318,6 +319,21 @@
       var date = workStart + Math.ceil((p / 100) * total);
       if (date >= today) list.push({ date: date, kind: "percent", value: p });
     });
+    // % życia w pracy rośnie z każdym dniem — tylko najbliższa wielokrotność 5%.
+    // Pierwszy dzień d, w którym (d − start pracy) / (d − urodzenie) ≥ p / 100.
+    var birth = parseISODate(config.birthDate);
+    for (var lp = 5; lp < 100; lp += 5) {
+      var lifeDate = Math.ceil((100 * workStart - lp * birth) / (100 - lp));
+      if (lifeDate >= retirement) break;
+      if (lifeDate >= today) {
+        list.push({ date: lifeDate, kind: "lifePercent", value: lp });
+        break;
+      }
+    }
+    for (var years = 5; addYears(workStart, years) < retirement; years += 5) {
+      var anniversary = addYears(workStart, years);
+      if (anniversary >= today) list.push({ date: anniversary, kind: "yearsWorked", value: years });
+    }
     DAYS_LEFT_MARKS.forEach(function (n) {
       var date = retirement - n;
       if (date >= today) list.push({ date: date, kind: "daysLeft", value: n });
@@ -338,6 +354,8 @@
 
     list.forEach(function (m) {
       if (m.kind === "percent") m.label = m.value + "% okresu pracy za Tobą";
+      else if (m.kind === "lifePercent") m.label = m.value + "% życia w pracy";
+      else if (m.kind === "yearsWorked") m.label = m.value + " lat pracy za Tobą";
       else if (m.kind === "daysLeft") m.label = m.value === 1 ? "Ostatni dzień przed emeryturą" : m.value + " dni do emerytury";
       else m.label = m.value === 1 ? "Ostatni dzień roboczy" : m.value + " dni roboczych do emerytury";
     });

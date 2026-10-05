@@ -2,7 +2,8 @@
 
 Statyczna strona pokazująca, ile zostało do emerytury: dni kalendarzowych, dni i godzin
 roboczych (w wybrane dni tygodnia, z pominięciem polskich świąt ustawowych i urlopu),
-jaki procent okresu pracy masz już za sobą, najbliższe kamienie milowe oraz ile jeszcze
+jaki procent okresu pracy masz już za sobą, najbliższe kamienie milowe (m.in. kolejne
+pełne 5% życia spędzonego w pracy i okrągłe lata stażu) oraz ile jeszcze
 zostało poniedziałków, piątków, weekendów, świąt i długich weekendów. Odpowiednik narzędzia CLI
 [dni-do-emerytury](https://github.com/theundefined/dni-do-emerytury).
 
